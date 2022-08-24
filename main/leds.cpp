@@ -26,6 +26,20 @@ void onWiFiEvent(arduino_event_id_t event) {
 
       digitalWrite(LED_BUILTIN, 0);
 
+      break;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
+      String ip = WiFi.localIP().toString();
+
+      if (strcmp(ip.c_str(), "255.255.255.255") == 0) {
+        Serial.println("Received 255.255.255.255 as IP, retrying in 10 seconds");
+        digitalWrite(LED_BUILTIN, 1);
+        delay(10000);
+        WiFi.begin(SSID, PASS);
+        break;
+      }
+
+      Serial.printf("Wifi IP: %s\n", ip.c_str());
+
       if (MDNS.begin(MDNS_NAME))
         Serial.println("MDNS responder started");
 
@@ -33,11 +47,6 @@ void onWiFiEvent(arduino_event_id_t event) {
       serverOnline = true;
       server.setTimeout(10000);
       Serial.println("UDP server started");
-
-      break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-      String ip = WiFi.localIP().toString();
-      Serial.printf("Wifi IP: %s\n", ip.c_str());
       break;
     }
 
@@ -196,8 +205,13 @@ void setup() {
 
   delay(50);
 
+  WiFi.mode(WIFI_STA);
   WiFi.onEvent(onWiFiEvent);
-  WiFi.hostname("central-led");
+
+#ifdef STATIC_IP
+  WiFi.config(STATIC_IP, STATIC_GATEWAY, STATIC_MASK);  // arduino-esp32 #2537
+#endif
+  WiFi.setHostname("central-led");
   WiFi.begin(SSID, PASS);
 
   EEPROM.begin(512);
@@ -223,7 +237,7 @@ void loop() {
   int packetSize;
 
   // If there's no active connection, only read a packet every second
-  if (serverOnline && (has_connection || current_ms - last_read_time >= 1000)) {
+  if (serverOnline && (has_connection || current_ms - last_read_time >= 3000)) {
     last_read_time = current_ms;
 
     if ((packetSize = server.parsePacket()) != 0) {
@@ -334,7 +348,7 @@ void loop() {
 
     tick = (tick + 1) & 0x7FFFFFFF; // Keeping it positive
   } else if (!has_connection) { // If the light is off and there's an active connection, wait longer until further action
-    delay(1000);
+    delay(3000);
     return;
   }
 
