@@ -1,6 +1,3 @@
-//
-// Created by michiel on 1/1/22.
-//
 
 #include "util.h"
 
@@ -35,4 +32,17 @@ bool readFully(WiFiUDP &udp, uint8_t *buf, size_t size) {
 
 int clampByte(int i) {
   return i < 0 ? 0 : i > 255 ? 255 : i;
+}
+
+String readString(const uint8_t *&buffer) {
+  String s = (const char *) buffer;
+  buffer += strlen((const char *) buffer) + 1;
+
+  return s;
+}
+
+void writeString(uint8_t *buffer, unsigned int &index, const String &str) {
+  buffer[index++] = str.length();
+  memcpy(buffer + index, str.c_str(), str.length());
+  index += str.length();
 }

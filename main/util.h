@@ -18,5 +18,9 @@ bool readFully(WiFiUDP &client, uint8_t *buf, size_t size);
 
 int clampByte(int i);
 
+String readString(const uint8_t *&buffer);
+
+void writeString(uint8_t *buffer, unsigned int &index, const String &str);
+
 
 #endif //LEDS_UTIL_H
